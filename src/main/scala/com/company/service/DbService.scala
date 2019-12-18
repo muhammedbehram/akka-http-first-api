@@ -8,6 +8,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class DbService(db: Database)(implicit ec: ExecutionContext) {
   def getAllPeople: Future[Seq[Person]] = db.run(people.result)
+  def getPerson(id: Long): Future[Option[Person]] = {
+    db.run {
+      people.filter(person => person.id === id).result.headOption
+    }
+  }
   def insertPerson(name: String, surname: String): Future[Person] = {
     val action = (people.map(person => (person.name, person.surname)) returning people
       .map(_.id) into (

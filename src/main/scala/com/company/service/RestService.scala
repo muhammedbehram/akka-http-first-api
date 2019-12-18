@@ -5,13 +5,16 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.company.model.Person
-import spray.json.DefaultJsonProtocol
+import com.typesafe.scalalogging.LazyLogging
+import spray.json._
 
 import scala.util.{Failure, Success}
-class RestService(dbService: DbService) extends SprayJsonSupport with DefaultJsonProtocol {
+class RestService(dbService: DbService) extends SprayJsonSupport with DefaultJsonProtocol with LazyLogging {
   val route: Route = get {
     path("people") {
       complete(dbService.getAllPeople)
+    } ~ path("person" / LongNumber) { personId =>
+      complete(dbService.getPerson(personId))
     }
   } ~
     post {
@@ -19,8 +22,11 @@ class RestService(dbService: DbService) extends SprayJsonSupport with DefaultJso
         entity(as[Person]) { person =>
           val saved = dbService.insertPerson(person.name, person.surname)
           onComplete(saved) {
-            case Success(_) => complete("Done")
-            case Failure(_) => complete(StatusCodes.InternalServerError)
+            case Success(savedPerson) => complete(savedPerson)
+            case Failure(e) => {
+              logger.error(s"Failed to insert a person ${person.id}", e)
+              complete(StatusCodes.InternalServerError)
+            }
           }
         }
       }
@@ -30,8 +36,11 @@ class RestService(dbService: DbService) extends SprayJsonSupport with DefaultJso
         entity(as[Person]) { person =>
           val updated = dbService.update(id, person.name, person.surname)
           onComplete(updated) {
-            case Success(_) => complete("Done")
-            case Failure(_) => complete(StatusCodes.NotFound)
+            case Success(updatedRows) => complete(JsObject("updatedRows" -> JsNumber(updatedRows)))
+            case Failure(e) => {
+              logger.error(s"Failed to update a person ${id}", e)
+              complete(StatusCodes.InternalServerError)
+            }
           }
         }
       }
