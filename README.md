@@ -25,14 +25,13 @@ Yeni bir birey kaydı alır.
     }
 ]
 ```
-### PUT /person
+### PUT /person/{id}
 
 Var olan birey kaydını günceller.
 ### Request Body:
 ```json
 [
     {
-      "id": 1,
       "name": "muhammed osman",
       "surname": "behram"
     }
